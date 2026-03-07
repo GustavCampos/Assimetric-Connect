@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title text-center">Chat with Peer</h3>
+                <p class="text-center text-muted">Connected to: {{ to_ip }}</p>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <div id="chat-box" class="border p-3 mb-3" style="height: 300px; overflow-y: auto;">
+                    <!-- Chat messages will appear here -->
+                </div>
+                <form id="chat-form">
+                    <div class="input-group">
+                        <input type="text" id="chat-message" class="form-control" placeholder="Type your message..." required>
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function mount_message(message, type) {
+            const messageDiv = $('<div></div>').text(message).css({
+                maxWidth: '70%',
+                wordWrap: 'break-word',
+                padding: '10px',
+                borderRadius: '15px',
+                fontSize: '14px',
+                color: type === 'their' ? 'black' : 'white',
+                backgroundColor:
+                    type === 'our' ? 'green' :
+                    type === 'their' ? '#e0e0e0' :
+                    'red',
+            });
+
+            const parentDiv = $('<div></div>').css({
+                width: '100%',
+                display: 'flex',
+                paddingBottom: '10px',
+                justifyContent: type === 'their' ? 'flex-start' : 'flex-end',
+            });
+
+            parentDiv.append(messageDiv);
+            $('#chat-box').append(parentDiv);
+        }
+
+        $(document).ready(function () {
+            const socket = io();
+            const peerIp = "{{ to_ip }}";  // Get the peer's IP from the server
+
+            // Handle form submission
+            $('#chat-form').on('submit', function (event) {
+                event.preventDefault();
+
+                const message = $('#chat-message').val().trim();
+                if (!message) return;
+
+                socket.emit('chat_send_message', { message, to_ip: peerIp });
+
+                $('#chat-message').val('');
+            });
+
+            socket.on('chat_send_response', function (data) {
+                const type = data.success ? 'our' : 'error';
+                mount_message(data.message, type);                 
+            });
+
+            // Listen for incoming messages
+            socket.on('chat_receive_message', function (data) {
+                mount_message(data.message, 'their');                 
+            });
+        });
+    </script>
+</body>
+</html>
