@@ -3,12 +3,15 @@ from flask_socketio import SocketIO
 import socket
 import requests
 import argparse
+import atexit
+import signal
 
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
 CONNECTIONS = set() # Tracks with which peers one is connected
+MY_IP = None
             
 def get_my_ip():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -17,11 +20,6 @@ def get_my_ip():
         return sock.getsockname()[0]
     finally:
         sock.close()
-        
-def get_my_connection():
-    my_port = request.host.split(':')[-1]
-    return f"{get_my_ip()}:{my_port}"
-    
         
 # =============================================================================
 #   Events
@@ -38,7 +36,7 @@ def handle_connect_to_peer(data):
         return
         
     try:
-        json = { 'from_ip': get_my_connection(), 'to_ip': peer_ip }
+        json = { 'from_ip': MY_IP, 'to_ip': peer_ip }
         url = f"http://{peer_ip}/webhook/connect_request"
         response = requests.post(url, json=json)
         
@@ -78,13 +76,15 @@ def confirm_connect(data):
         
 @socketio.on('chat_send_message')
 def handle_chat_message(data):
-    print(data)
-    
     message = data['message']
     to_ip = data['to_ip']
+    data['from_ip'] = MY_IP;
 
-    if not message or not to_ip: return
+    if (not to_ip) or (to_ip not in CONNECTIONS):
+        socketio.emit('goto_index')
 
+    if not message: return
+    
     try:
         url = f"http://{to_ip}/webhook/receive_message"
         response = requests.post(url, json=data)
@@ -104,19 +104,29 @@ def handle_chat_message(data):
         socketio.emit('chat_send_response', {
             'success': False,
             'message': 'Error connecting to peer'
-        })    
+        })
+        
+@socketio.on('disconnect_peer')
+def handle_disconnect(data):
+    try:
+        url = f"http://{data['peer_ip']}/webhook/disconnect"
+        requests.post(url, json={ 'from_ip': MY_IP })
+    finally:
+        print('jorge')
+        CONNECTIONS.remove(data['peer_ip'])
+        socketio.emit('goto_index')
             
 # =============================================================================
 #   Routes
 # =============================================================================
 @app.route('/')
 def index():    
-    return render_template('index.html', my_ip=get_my_connection())
+    return render_template('index.html', my_ip=MY_IP)
 
 @app.route('/chat')
 def chat():
     to_ip = request.args.get('peer_ip')
-    from_ip = get_my_connection()
+    from_ip = MY_IP
     
     if (not to_ip) or (to_ip not in CONNECTIONS):
         return redirect(url_for('index'))
@@ -148,13 +158,43 @@ def connect_confirm():
 @app.route('/webhook/receive_message', methods=['POST'])
 def receive_message():
     data = request.json
+    
+    if data['from_ip'] not in CONNECTIONS:
+        socketio.emit('disconnect_peer', { 'peer_ip': data['from_ip'] })
+        return jsonify({"message": "Peer connection not made"}), 403    
+    
     socketio.emit('chat_receive_message', data)
     return jsonify({"message": "Message sent successfully"}), 200
+
+@app.route('/webhook/disconnect', methods=['POST'])
+def disconnect():
+    data = request.json
+    CONNECTIONS.remove(data['from_ip'])
+    socketio.emit('goto_index')
+    return jsonify({"message": "Peer successfully disconnected"}), 200
+
+# =============================================================================
+#   Cleanup
+# =============================================================================
+def cleanup(signum=None, frame=None):
+    from_ip = MY_IP
+    for connection in CONNECTIONS:
+        try:
+            url = f"http://{connection}/webhook/disconnect"
+            requests.post(url, json={ 'from_ip': from_ip })
+        finally: pass
+    CONNECTIONS.clear()
+    
+atexit.register(cleanup)
+signal.signal(signal.SIGTERM, cleanup)
+signal.signal(signal.SIGINT, cleanup)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run a Flask chat server instance")
     parser.add_argument('--port', type=int, default=5000, help="Port to run the server on")
     
     args = parser.parse_args()
+    
+    MY_IP = f"{get_my_ip()}:{args.port}"
     
     socketio.run(app, host='0.0.0.0', port=args.port, debug=True)

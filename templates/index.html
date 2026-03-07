@@ -15,25 +15,51 @@
             <div class="card-body">
                 <h3 class="card-title text-center">LAN Chat</h3>
                 <p class="text-center text-muted">Your connection address:</p>
-                <h5 class="text-center text-primary">{{ my_ip }}</h5>
+                <button id="my-ip" class="text-center btn btn-outline-primary d-block mx-auto">
+                    {{ my_ip }}
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="card mt-4">
-        <div class="card-body">
-            <h5 class="card-title">Connect to a peer</h5>
-            <form id="connect-form">
-                <label for="peer-ip" class="form-label">Peer connection address</label>
-                <input type="text" name="peer-ip" id="peer-ip" class="form-control" placeholder="Enter peer IP (e.g., Enter peer IP (e.g., 192.168.1.100)192.168.1.100:5000)">
-                <button type="submit" class="btn btn-primary mt-2">Connect</button>
-            </form>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Connect to a peer</h5>
+                <form id="connect-form">
+                    <label for="peer-ip" class="form-label">Peer connection address</label>
+                    <input type="text" name="peer-ip" id="peer-ip" class="form-control" placeholder="Enter peer IP (e.g., Enter peer IP (e.g., 192.168.1.100)192.168.1.100:5000)">
+                    <div class="d-flex justify-content-end mt-2">
+                        <button type="submit" class="btn btn-primary">Connect</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
     <script>
         $(document).ready(function () {
             const socket = io();
+
+            $('#my-ip').on('click', function () {
+                const myIp = $(this).text().trim();
+                navigator.clipboard.writeText(myIp).then(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Copied!',
+                        text: `Your IP address (${myIp}) has been copied to the clipboard.`,
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                }).catch((err) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed to Copy',
+                        text: 'Could not copy your IP address to the clipboard.',
+                    });
+                    console.error('Clipboard copy failed:', err);
+                });
+            });
 
             $('#connect-form').on('submit', function (event) {
                 event.preventDefault();

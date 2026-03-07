@@ -14,6 +14,7 @@
             <div class="card-body">
                 <h3 class="card-title text-center">Chat with Peer</h3>
                 <p class="text-center text-muted">Connected to: {{ to_ip }}</p>
+                <button id="disconnect" class="btn btn-danger btn-sm float-end">Disconnect</button>
             </div>
         </div>
 
@@ -54,8 +55,12 @@
                 justifyContent: type === 'their' ? 'flex-start' : 'flex-end',
             });
 
+            const chatbox = $('#chat-box');
+
             parentDiv.append(messageDiv);
-            $('#chat-box').append(parentDiv);
+            chatbox.append(parentDiv);
+
+            chatbox.scrollTop(chatbox[0].scrollHeight);
         }
 
         $(document).ready(function () {
@@ -79,9 +84,24 @@
                 mount_message(data.message, type);                 
             });
 
-            // Listen for incoming messages
             socket.on('chat_receive_message', function (data) {
-                mount_message(data.message, 'their');                 
+                mount_message(data.message, 'their');              
+            });
+
+            socket.on('goto_index', function (data) { window.location.href = `/`; });
+
+            const disconnect = () => {
+                socket.emit('disconnect_peer', { peer_ip: peerIp });
+            }
+
+            $('#disconnect').on('click', disconnect);
+            $(window).on('beforeunload', disconnect);
+
+            socket.on('connect_response', function (data) {
+                Swal.fire({
+                    icon: data.success ? 'success' : 'error',
+                    title: data.message,
+                });
             });
         });
     </script>
