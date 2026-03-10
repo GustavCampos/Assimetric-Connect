@@ -6,6 +6,8 @@ import argparse
 import atexit
 import signal
 
+# Custom files
+import security
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -56,11 +58,19 @@ def handle_connect_to_peer(data):
 def confirm_connect(data):
     try:
         url = f"http://{data['to_ip']}/webhook/connect_confirm"
+                
+        data['public_key'] = security.get_public_key()
 
         response = requests.post(url, json=data)
-        
+    
         if response.status_code == 200:
+            security.store_public_key(
+                response.json().get('public_key'),
+                data['to_ip'],
+            )
+            
             CONNECTIONS.add(data['to_ip'])
+            
             socketio.emit('goto_chat', { 'to_ip': data['to_ip'] })
         else:
             socketio.emit('connect_response', {
@@ -86,6 +96,10 @@ def handle_chat_message(data):
     if not message: return
     
     try:
+        data['message'] = security.encrypt_message(
+            message, security.get_public_key_obj(to_ip)
+        )
+        
         url = f"http://{to_ip}/webhook/receive_message"
         response = requests.post(url, json=data)
         
@@ -112,7 +126,6 @@ def handle_disconnect(data):
         url = f"http://{data['peer_ip']}/webhook/disconnect"
         requests.post(url, json={ 'from_ip': MY_IP })
     finally:
-        print('jorge')
         CONNECTIONS.remove(data['peer_ip'])
         socketio.emit('goto_index')
             
@@ -142,13 +155,23 @@ def connect_request():
 
 @app.route('/webhook/connect_confirm', methods=['POST'])
 def connect_confirm():
-    data = request.json
+    data = request.get_json()
     
     if data['allow']:
-        CONNECTIONS.add(data['from_ip'])
-        data = { 'to_ip': data['from_ip'] }
-        socketio.emit('goto_chat', data)
-        return jsonify({"message": "Connection made"}), 200
+        security.store_public_key(
+            data.get('public_key'),
+            data.get('from_ip')
+        )
+        CONNECTIONS.add(data.get('from_ip'))
+        response_data = { 'to_ip': data.get('from_ip') }
+        
+        response = {
+            "message": "Connection made",
+            "public_key": security.get_public_key(),
+        }
+        
+        socketio.emit('goto_chat', response_data)
+        return jsonify(response), 200
     else:
         socketio.emit('connect_response', {
             'success': False,
@@ -162,6 +185,9 @@ def receive_message():
     if data['from_ip'] not in CONNECTIONS:
         socketio.emit('disconnect_peer', { 'peer_ip': data['from_ip'] })
         return jsonify({"message": "Peer connection not made"}), 403    
+    
+    
+    data['d_message'] = security.decrypt_message(data['message'])
     
     socketio.emit('chat_receive_message', data)
     return jsonify({"message": "Message sent successfully"}), 200
@@ -196,5 +222,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     MY_IP = f"{get_my_ip()}:{args.port}"
+    security.generate_keys()
     
     socketio.run(app, host='0.0.0.0', port=args.port, debug=True)

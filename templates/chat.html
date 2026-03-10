@@ -20,6 +20,12 @@
 
         <div class="card mt-4">
             <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="form-check form-check-inline">
+                        <label for="toggle-encrypted" class="form-check-label">Show Encrypted Messages</label>
+                        <input type="checkbox" id="toggle-encrypted" class="form-check-input">
+                    </div>
+                </div>
                 <div id="chat-box" class="border p-3 mb-3" style="height: 300px; overflow-y: auto;">
                     <!-- Chat messages will appear here -->
                 </div>
@@ -41,18 +47,23 @@
                 padding: '10px',
                 borderRadius: '15px',
                 fontSize: '14px',
-                color: type === 'their' ? 'black' : 'white',
+                color: ['their', 'crypt'].includes(type) ? 'black' : 'white',
                 backgroundColor:
-                    type === 'our' ? 'green' :
+                    type === 'our' ? '#72E359' :
                     type === 'their' ? '#e0e0e0' :
+                    type === 'crypt' ? '#586F6B' :
                     'red',
             });
+
+            if (type === 'crypt') {
+                messageDiv.addClass('encrypted-message');
+            }
 
             const parentDiv = $('<div></div>').css({
                 width: '100%',
                 display: 'flex',
                 paddingBottom: '10px',
-                justifyContent: type === 'their' ? 'flex-start' : 'flex-end',
+                justifyContent: ['their', 'crypt'].includes(type) ? 'flex-start' : 'flex-end',
             });
 
             const chatbox = $('#chat-box');
@@ -85,7 +96,8 @@
             });
 
             socket.on('chat_receive_message', function (data) {
-                mount_message(data.message, 'their');              
+                mount_message(data.message, 'crypt');              
+                mount_message(data.d_message, 'their');
             });
 
             socket.on('goto_index', function (data) { window.location.href = `/`; });
@@ -102,6 +114,14 @@
                     icon: data.success ? 'success' : 'error',
                     title: data.message,
                 });
+            });
+
+            $('#toggle-encrypted').on('change', function () {
+                if ($(this).is(':checked')) {
+                    $('.encrypted-message').show();
+                } else {
+                    $('.encrypted-message').hide();
+                }
             });
         });
     </script>
