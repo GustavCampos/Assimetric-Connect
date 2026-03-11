@@ -57,6 +57,7 @@
 
             if (type === 'crypt') {
                 messageDiv.addClass('encrypted-message');
+                if (!$('#toggle-encrypted').is(':checked')) messageDiv.hide()
             }
 
             const parentDiv = $('<div></div>').css({
