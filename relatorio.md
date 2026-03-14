@@ -1,4 +1,5 @@
 # Relatório Técnico – Assimetric-Connect: Chat P2P com Criptografia RSA
+
 Gabriel Buron, Gustavo Campos e Juan Fricke
 
 ## 1. Visão Geral
@@ -236,7 +237,31 @@ O `docker-compose.yml` utiliza `network_mode: host` para que os containers acess
 
 ---
 
-## 10. Conclusão
+## 10. Casos de Uso
+
+O Assimetric-Connect é aplicável a cenários onde a privacidade da comunicação é prioritária e a infraestrutura centralizada é indesejável ou indisponível.
+
+### 10.1 Chat em Rede Local (LAN)
+
+Em ambientes de rede local — como laboratórios, residências ou eventos — o sistema permite comunicação direta entre dispositivos sem depender de servidores externos ou acesso à internet. Como cada peer opera por IP local, basta que os dispositivos estejam na mesma rede para que a troca de mensagens cifradas funcione. Isso é especialmente útil em cenários com restrições de conectividade ou onde se deseja evitar o tráfego de dados por serviços de terceiros.
+
+**Exemplo:** alunos em um laboratório de informática trocam mensagens cifradas ponto-a-ponto sem que o tráfego passe por nenhum servidor externo, garantindo privacidade dentro da rede da instituição.
+
+### 10.2 Chat de Jogo (Game Chat)
+
+Em sessões de jogos multiplayer em rede local (LAN parties), a comunicação entre jogadores frequentemente ocorre por canais não cifrados ou por plataformas externas que exigem cadastro e conexão à internet. O Assimetric-Connect oferece um canal de comunicação leve, cifrado e sem dependências externas, ideal para coordenação entre jogadores durante partidas.
+
+**Exemplo:** durante uma LAN party, jogadores utilizam o chat P2P para discutir estratégias em tempo real, com a garantia de que as mensagens não podem ser interceptadas por outros participantes da rede.
+
+### 10.3 Comunicação Interna de Empresa
+
+Em ambientes corporativos onde a confidencialidade das conversas é crítica, o sistema pode ser utilizado como canal de comunicação interna sem que os dados trafeguem por serviços em nuvem. A arquitetura P2P elimina o risco de vazamento em servidores intermediários, e a criptografia RSA garante que apenas os participantes da conversa tenham acesso ao conteúdo.
+
+**Exemplo:** funcionários de um departamento financeiro trocam informações sensíveis (relatórios, dados contábeis) via chat cifrado dentro da rede corporativa, sem que os dados passem por servidores de terceiros como Slack ou Microsoft Teams.
+
+---
+
+## 11. Conclusão
 
 O Assimetric-Connect demonstra uma implementação funcional de comunicação P2P com criptografia assimétrica. O sistema implementa o ciclo completo: geração de chaves RSA-2048, troca de chaves públicas via protocolo de handshake HTTP, cifragem RSA-OAEP com SHA-256, e decifragem local com a chave privada — tudo integrado a uma interface web em tempo real via WebSockets.
 
