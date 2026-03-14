@@ -1,4 +1,5 @@
 # Relatório Técnico – Assimetric-Connect: Chat P2P com Criptografia RSA
+Gabriel Buron, Gustavo Campos e Juan Fricke
 
 ## 1. Visão Geral
 
