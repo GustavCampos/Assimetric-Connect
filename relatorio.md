@@ -15,19 +15,20 @@ A aplicação segue um modelo **P2P híbrido**: cada peer executa um servidor Fl
 ```
 ┌────────────────────────────────────────────────────┐
 │                   PEER A (IP:5000)                 │
-│  ┌──────────┐   ┌───────────────┐   ┌───────────┐ │
-│  │ Browser  │◄─►│ Flask +       │◄─►│ security  │ │
-│  │ (UI)     │   │ SocketIO      │   │ (RSA)     │ │
-│  └──────────┘   └───────┬───────┘   └───────────┘ │
+│  ┌──────────┐   ┌───────────────┐   ┌───────────┐  │
+│  │ Browser  │◄─►│ Flask +       │◄─►│ security  │  │
+│  │ (UI)     │   │ SocketIO      │   │ (RSA)     │  │
+│  └──────────┘   └───────┬───────┘   └───────────┘  │
 └─────────────────────────┼──────────────────────────┘
                           │ HTTP POST (webhooks)
                           ▼
 ┌─────────────────────────┼──────────────────────────┐
 │                   PEER B (IP:5000)                 │
-│  ┌──────────┐   ┌───────┴───────┐   ┌───────────┐ │
-│  │ Browser  │◄─►│ Flask +       │◄─►│ security  │ │
-│  │ (UI)     │   │ SocketIO      │   │ (RSA)     │ │
-│  └──────────┘   └───────────────┘   └───────────┘ │
+│  ┌──────────┐   ┌───────┴───────┐   ┌───────────┐  │
+│  │ Browser  │◄─►│ Flask +       │◄─►│ security  │  │
+│  │ (UI)     │   │ SocketIO      │   │ (RSA)     │  │
+│  └──────────┘   └───────────────┘   └───────────┘  
+│
 └────────────────────────────────────────────────────┘
 ```
 
@@ -98,8 +99,8 @@ O handshake entre dois peers segue o seguinte fluxo:
      │   { from_ip, to_ip }                          │
      │──────────────────────────────────────────────►│
      │                                               │
-     │              2. UI exibe SweetAlert            │
-     │              (aceitar / recusar)               │
+     │              2. UI exibe SweetAlert           │
+     │              (aceitar / recusar)              │
      │                                               │
      │  3. POST /webhook/connect_confirm             │
      │   { allow: true, public_key: PEM_B, from_ip } │
@@ -129,17 +130,17 @@ Após a troca de chaves, o envio de mensagens segue este fluxo:
    Peer A (remetente)                              Peer B (destinatário)
      │                                               │
      │  1. Usuário digita mensagem M                 │
-     │  2. C = RSA_OAEP_Encrypt(M, PubKey_B)        │
+     │  2. C = RSA_OAEP_Encrypt(M, PubKey_B)         │
      │  3. C_b64 = Base64(C)                         │
      │                                               │
      │  4. POST /webhook/receive_message             │
      │   { message: C_b64, from_ip }                 │
      │──────────────────────────────────────────────►│
      │                                               │
-     │                5. C = Base64_Decode(C_b64)     │
+     │                5. C = Base64_Decode(C_b64)    │
      │                6. M = RSA_OAEP_Decrypt(C,     │
-     │                        PrivKey_B)              │
-     │                7. Exibe M no chat              │
+     │                        PrivKey_B)             │
+     │                7. Exibe M no chat             │
      │                                               │
 ```
 
